@@ -3,8 +3,8 @@
 import rospy
 import math
 from std_msgs.msg import String
-from zeabus_vision_srv.srv import Boom2_Srv
-from zeabus_vision_srv.msg import Boom_Msg
+from zeabus_vision_bin.srv import Bin_Srv
+from zeabus_vision_bin.msg import Bin_Msg
 from AIControl import AIControl
 from hardware import Hardware
 
@@ -13,44 +13,40 @@ class BinnMission (object):
     def __init__ (self):
         print "Now do bin"
         ## subscribe vision
-        srv_name = 'Vision_Service2'
+        srv_name = 'bin_srv'
         rospy.wait_for_service(srv_name)
         print 'service starts'
-        self.detect = rospy.ServiceProxy(srv_name, Boom2_Srv)
+        self.detect_binn = rospy.ServiceProxy(srv_name, Bin_Srv)
         ## old vision
         self.aicontrol = AIControl()
-        self.hardware = Hardware()
-        self.object = String('bin')
-        self.req = String('white')
+        # self.hw = Hardware()
+        self.aicontrol.drive ([1,0,0,0,0,0])
+        rospy.sleep(0.1)
 
     def getdata (self):
-        object_data = self.detect(self.object,self.req)
-        object_data = object_data.data
-        return object_data
+        binn_data = self.detect_binn(String('bin'),String('white'))
+        binn_data = binn_data.data
+        return binn_data
 
     def run (self, cover): # if cover = 1, uncover = 0
         print 'Go to bin'
         count = 100
-        object_data = Boom_Msg()
 
         while not rospy.is_shutdown() and not self.aicontrol.is_fail(count):
             print 'in while'
-            object_data = self.getdata()
+            binn_data = self.getdata()
 
-            if object_data.appear :
+            if binn_data.appear :
                 print 'found'
-                if self.aicontrol.is_center ([object_data.x,object_data.y],-50,50,-50,50):
+                if self.aicontrol.is_center ([binn_data.x,binn_data.y],-0.1,0.1,-0.1,0.1):
                     print 'Center'
-                    if object_data.value > 2000 : ### near ###
-                        self.aicontrol.turn_yaw_relative(object_data.angle)
-                        break
-                    else :
-                        self.aicontrol.drive_z (-2.8)
+                    # self.aicontrol.drive_z (-2.8)   ##### DEPTH !!!
+                    self.aicontrol.turn_yaw_relative(binn_data.angle)
                 else :
                     print 'Not Center'
-                    vx = self.aicontrol.adjust ((object_data.x/100)/object_data.value, -0.4, -0.2, 0.2, 0.4)
-                    vy = self.aicontrol.adjust ((object_data.y/100)/object_data.value, -0.4, -0.2, 0.2, 0.4)
-                    self.aicontrol.drive([vx,vy,0,0,0,0])
+                    vx = binn_data.x
+                    vy = binn_data.y
+                    self.aicontrol.drive ([vx,vy,0,0,0,0])
             else :
                 print 'not found'
                 count -= 1
@@ -58,7 +54,7 @@ class BinnMission (object):
                 
                 for i in range(4):
                     self.aicontrol.turn_yaw_relative (degree[i])
-                    self.aicontrol.stop()
+                    self.aicontrol.stop(2)
                     rospy.sleep (5)
                     object_data = self.getdata()
                     if object_data.appear :
@@ -67,19 +63,19 @@ class BinnMission (object):
             rospy.sleep(0.25)
 
         if cover == 1:
-            ## grap
+            # self.hw.command ('gripper', 'grab')   ### grab
             self.aicontrol.drive_z (-2)           ### up -> open binn ###
             self.aicontrol.drive ([0,1,0,0,0,0])  ### move -> drop cover ###
-            rospy.sleep(0.1)
-            ## drop cover
+            rospy.sleep(0.1)    
+            # self.hw.command ('gripper', 'leave')  ### leave cover alone
             self.aicontrol.drive ([0,-1,0,0,0,0]) ### move back to above bin ###
             rospy.sleep(0.1)
             self.aicontrol.drive_z (-2.8)
 
         ## drop x2 times
-        self.hardware.command('drop_left', 'on')
+        # self.hw.command('drop_left', 'drop')
         rospy.sleep(0.5)
-        self.hardware.command('drop_right', 'on')
+        # self.hw.command('drop_right', 'close')
         rospy.sleep(0.5)
         print 'drop marker yet'
         print 'bin complete'

@@ -21,10 +21,10 @@ class PathMission (object):
 
         #### BOUY
         ## subscribe vision
-        # bouy_srv = 'find_obj'
-        # rospy.wait_for_service(bouy_srv)
-        # print 'servive starts bouy srv'
-        # self.detect_bouy = rospy.ServiceProxy(bouy_srv, Boom_Srv)
+        bouy_srv = 'find_obj'
+        rospy.wait_for_service(bouy_srv)
+        print 'servive starts bouy srv'
+        self.detect_bouy = rospy.ServiceProxy(bouy_srv, Boom_Srv)
         #### BOUY
 
         #### NAV
@@ -53,17 +53,17 @@ class PathMission (object):
             if path_data.appear :
                 print 'found'
 
-                if self.aicontrol.is_center([path_data.x,path_data.y],-0.2,0.2,-0.2,0.2):
+                if self.aicontrol.is_center([path_data.x,path_data.y],-0.1,0.1,-0.1,0.1):
                     self.angle = path_data.angle
                     print self.angle
                     print 'Center'
                     break
                 else :
                     print 'Not Center'
-                    self.aicontrol.drive ([path_data.x/2,path_data.y/2,0,0,0,0])
+                    self.aicontrol.drive ([path_data.x,path_data.y,0,0,0,0])
             else :
                 print 'not found'
-                # self.aicontrol.drive ([0,0,0.5,0,0,0])
+                self.aicontrol.drive ([0.5,0,0,0,0,0])
                 self.aicontrol.stop(0.25)
                 count -= 1
 
@@ -79,7 +79,7 @@ class PathMission (object):
         if obj == 'bouy':
             n_path = 'path1'
         elif obj == 'navigate':
-            n_path = 'path2'
+            n_path = 'path1'
         if(self.goto_path(n_path)):
             print 'turn_yaw'
             print self.angle
@@ -98,43 +98,46 @@ class PathMission (object):
         #         print 'Path Fail'
             self.aicontrol.drive ([1,0,0,0,0,0])
             rospy.sleep (2)
-        # if obj == 'bouy':
-        #     count = 50
-        #     self.aicontrol.drive_z (-3)
-        #     while not rospy.is_shutdown() and not self.aicontrol.is_fail(count):
+        if obj == 'bouy':
+            count = 50
+            self.aicontrol.drive_z (-3)
+            while not rospy.is_shutdown() and not self.aicontrol.is_fail(count):
 
-        #         red_bouy = self.detect_bouy(String('bouy'),String('red'))
-        #         red_bouy = red_bouy.data
-        #         rospy.sleep(2)
-        #         green_bouy = self.detect_bouy(String('bouy'),String('green'))
-        #         green_bouy = green_bouy.data
-        #         rospy.sleep(2)
-        #         # yellow_bouy = self.detect_bouy(String('bouy'),String('yellow'))
-        #         # yellow_bouy = yellow_bouy.data
-        #         print 'RED BOUY DATA'
-        #         print red_bouy
-        #         print 'GREEN BOUY DATA'
-        #         print green_bouy
-        #         # print 'YELLOW BOUY DATA'
-        #         # print yellow_bouy
-        #         if red_bouy.appear:
-        #             print 'RED FOUND BOUY'
-        #             return 
-        #             break
-        #         elif green_bouy.appear:
-        #             print 'GREEN FOUND BOUY'
-        #             return
-        #             break
-        #         else:
-        #             self.aicontrol.drive ([0.2,0,0,0,0,0])
-        #             rospy.sleep (0.3)
-        #             print 'forward'
-        #             count -= 1
-            # while not red_bouy.appear and not green.appaer:
-            #     self.aicontrol.turn_yaw_relative (10)
-            #     rospy.sleep (2)
+                red_bouy = self.detect_bouy(String('bouy'),String('red'))
+                red_bouy = red_bouy.data
+                rospy.sleep(2)
+                green_bouy = self.detect_bouy(String('bouy'),String('green'))
+                green_bouy = green_bouy.data
+                rospy.sleep(2)
+                # yellow_bouy = self.detect_bouy(String('bouy'),String('yellow'))
+                # yellow_bouy = yellow_bouy.data
+                print 'RED BOUY DATA'
+                print red_bouy
+                print 'GREEN BOUY DATA'
+                print green_bouy
+                # print 'YELLOW BOUY DATA'
+                # print yellow_bouy
+                if red_bouy.appear:
+                    print 'RED FOUND BOUY'
+                    return
+                    break
+                elif green_bouy.appear:
+                    print 'GREEN FOUND BOUY'
+                    return
+                    break
+                else:
+                    self.aicontrol.drive ([0.2,0,0,0,0,0])
+                    rospy.sleep (0.3)
+                    print 'forward'
+                    count -= 1
+            '''
+            while not red_bouy.appear and not green.appaer:
+                self.aicontrol.turn_yaw_relative (10)
+                rospy.sleep (2)
+            '''
 
         if obj == 'navigate':
+            self.aicontrol.drive_z (-3.5)
             nav_data = self.detect_nav(String('navigate'),String('yellow'))
             nav_data = nav_data.data
             print 'NAVIGATE DATA'
@@ -147,7 +150,7 @@ class PathMission (object):
                     break
                 else:
                     print 'not found navigate'
-                    self.aicontrol.drive_x (0.2)
+                    self.aicontrol.drive_x (0.1)
                     rospy.sleep (0.3)
                     count -= 1
         self.aicontrol.stop(2)

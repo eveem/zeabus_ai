@@ -6,8 +6,9 @@ import math
 # from path import PathMission
 # from bouy import BouyMission
 # from navigate import NavigateMission
-from pingping import PingerMission
+# from pingping import PingerMission
 # from binn import BinnMission
+from sett import SettMission
 from AIControl import AIControl
 from modbus_ascii_ros.msg import Switch
 
@@ -27,26 +28,33 @@ if __name__ == '__main__':
     print "init node complete"
     # rospy.Subscriber("/switch/data", Switch, start, queue_size = 10)
     # rospy.sleep (2)
-    # while 
+    # while check:
     # print 'DO AI EIEI YEAH !!'
     #### inherit phase
-    # aicontrol = AIControl()
-    pingping = PingerMission()
-    pingping.listening()
+    aicontrol = AIControl()
+    # pingping = PingerMission()
+    # pingping.run()
+    # rospy.spin()
     # gate_mission = GateMission()
     # path_mission = PathMission()
     # bouy_mission = BouyMission()
     # navigate_mission = NavigateMission()
-    # print 'inherit complete'
+    # binn_mission = BinnMission()
+    sett_mission = SettMission()
+    print 'inherit complete'
     # gate_mission.run()
     # print 'GATE COMPLETE !!'
     # path_mission.run('bouy')
     # print 'PATH TO BOUY COMPLETE !!'
-    # bouy_mission.run()
+    # bouy_mission.find_path()
     # print 'BOUY COMPLETE !!'
     # path_mission.run('navigate')
     # print 'PATH TO NAVIGATE COMPLETE !!'
     # navigate_mission.run()
     # print 'NAVIGATE COMPLETE !!'
-    # aicontrol.stop(10)
-    # print 'FINISH !'
+    # binn_mission.run(0)
+    sett_mission.run()
+    aicontrol.stop(10)
+    print 'FINISH !'
+
+    # sett = SettMission()

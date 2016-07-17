@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from std_msgs.msg import String
+from std_msgs.msg import String, Bool
 from zeabus_hydrophone.srv import hydro_info
 from zeabus_hydrophone.msg import hydro_msg
 from AIControl import AIControl
@@ -16,106 +16,96 @@ class PingerMission(object):
         # print 'set up service complete'
         self.aicontrol = AIControl()
         # self.data=hydro_msg()
-
+        self.hy = hydro_msg()
+        self.check = Bool
         ### subscribe hydrophone ###
         rospy.Subscriber ('/hydro', hydro_msg, self.listening)
-        
-    def listening(self, data):
-        print data
+        rospy.Subscriber ('/controller/is_at_fix_orientation', Bool, self.stop_turn)
 
+    def listening(self, data):
+        self.hy = data
+
+    def stop_turn(self, data):
+        self.check = data
+    
     def convert(self, azi):
         print 'covert degree to turn'
         azi = -azi
         real = azi - 45
         if real < -180:
             real = real + 360
-        # real = azi
-        # if(real > 0):
-        #     real -= 45
-        # else :
-        #     real +=
         return real
+
+    def diff(sefl, now, want):
+        if abs(want - now) > math.pi:
+            return abs(want - now) - 2*math.pi
+        else:
+            return abs(want - now)
 
     def ping_check(self):
         print "listen hydrophone"
         goal = False
         goal_yaw = -99999
+        rospy.sleep(5)
         
         state = self.aicontrol.get_pose()
         my_yaw = state[5]
-        # pinger = self.srvPing(True)
-        # pinger = pinger.hydro
-        
-        real_degree = self.convert(pinger.azi)
-        print pinger.azi
+        real_degree = self.convert(self.hy.azi)
+        print self.hy.azi
         print real_degree
+
         self.aicontrol.turn_yaw_relative (real_degree)
-        
+        goal_yaw = real_degree/180 * math.pi + my_yaw
+       
         while goal != True:
+
             print 'listen pinger'
             
             state = self.aicontrol.get_pose()
             my_yaw = state[5]
+            print '*****************' 
 
-            if abs(my_yaw - goal_yaw) > 0.05:
-                pinger = self.srvPing(True)
-                pinger = pinger.hydro
-                real_degree = self.convert(pinger.azi)
-                print pinger.azi
+            # if abs(self.diff(my_yaw,goal_yaw)) < 0.15:
+            if self.check:
+                real_degree = self.convert(self.hy.azi)
+                print self.hy.azi
+                print 'real_degree'
                 print real_degree
-                goal_yaw = real_degree/180 * math.pi + my_yaw
                 
                 if real_degree > -10 and real_degree < 10:
-                    self.aicontrol.drive_x (1)
-                    rospy.sleep(2)
+                    self.aicontrol.drive_x (1)  ### control distance by azi || elv
+                    print 'drive'
+                    rospy.sleep(5)
                 else:
+                    goal_yaw = real_degree/180 * math.pi + my_yaw
+                    print abs(self.diff(my_yaw, goal_yaw)) 
                     self.aicontrol.turn_yaw_relative (real_degree)
+                    print 'turn'
                 print'***********************'
             else:
                 print 'yung mai tung'
                 print my_yaw
                 print goal_yaw
-            # print self.data.elv
-            print pinger
+                
+            print self.hy
+            rospy.sleep (5)
 
-            # if pinger.stop:
+            if self.hy.elv < 35:
+                goal = True
 
-                # if real_degree > -3 and real_degree < 3:
-                    # while True:
-                    # self.aicontrol.drive ([1,0,0,0,0,0])
-                    # rospy.sleep(6)
-                        # if real_degree > 175 and real_degree < -175:
-                        #     print 'stop because azi'
-                        #     self.aicontrol.stop(20)
-                        #     goal = True
-                # else:
-                    
-                    # rospy.sleep(0.5)
-                    # self.aicontrol.stop(4)
-            # else:
-            #     self.aicontrol.stop(6)
-            #     self.aicontrol.drive ([0.2,0,0,0,0,0])
-            #     rospy.sleep(0.5)
-            
-            # if pinger.distance == -999:
-            #     self.aicontrol.drive ([0.2,0,0,0,0,0])
-            #     rospy.sleep(0.2)
-
-            # if pinger.elv > -10 and pinger.elv < 10:
-            #     print 'stop because elv'
-            #     self.aicontrol.stop(20)
-            #     goal = True
+            ##### add stop state 
                
     def run(self):
-        # self.aicontrol.stop()
+
+        self.aicontrol.stop(2)
         print 'stop to listen pinger'
         self.ping_check()
         print 'above pinger'
-        self.aicontrol.drive_z(0)
+        self.aicontrol.drive_z(-0.05)
         print 'pinger mission complete'
 
 if __name__=='__main__':
     print 'hydrophone'
-    rospy.init_node('ping_ai')
+    # rospy.init_node('ping_ai')
     ping=PingerMission()
     ping.run()

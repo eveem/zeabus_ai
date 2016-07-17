@@ -103,7 +103,6 @@ class AIControl():
             # print zz
             self.depth.publish(zz)
             rospy.sleep(0.2)
-            print '1'
         while not rospy.is_shutdown() and not(self.auv[2] >= (z-self.err) and self.auv[2] <= (z+self.err)):
             # print self.auv[2]
             pass
@@ -112,7 +111,6 @@ class AIControl():
         for i in xrange(3):
             self.depth.publish(self.auv[2])
             rospy.sleep(0.2)
-            print '3' 
         print 'drive_z complete'
 
     def drive_x (self, x):
@@ -187,6 +185,7 @@ class AIControl():
 
         self.stop()
 
+   
     def delta_radians (self,x,y,bit):
         radians = math.atan2((x-self.auv[0])*bit,(y-self.auv[1])*bit)
         radians -= math.pi/2
