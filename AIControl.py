@@ -24,13 +24,16 @@ class AIControl():
         self.pose = Pose()
         self.auv = [0,0,0,0,0,0]
         self.goal = [-999,-999,-999]
+        self.stopt = True
         rospy.Subscriber ('/auv/state', Odometry, self.set_position)
         rospy.Subscriber ('/controller/is_at_fix_position', Bool, self.posi)
-        self.command = rospy.Publisher('/cmd_vel', Twist, queue_size = 1000)
-        self.turn_yaw_rel = rospy.Publisher('/fix/rel/yaw', Float64, queue_size = 1000)
-        self.turn_yaw_abs = rospy.Publisher('/fix/abs/yaw', Float64, queue_size = 1000)
-        self.depth = rospy.Publisher('/fix/abs/depth', Float64, queue_size = 1000)
-        self.go_to_point_publisher = rospy.Publisher('cmd_fix_position', Point, queue_size = 1000)
+        rospy.Subscriber ('/controller/is_at_fix_orientation', Bool, self.ck_turn)
+        
+        self.command = rospy.Publisher('/cmd_vel', Twist, queue_size = 10)
+        self.turn_yaw_rel = rospy.Publisher('/fix/rel/yaw', Float64, queue_size = 10)
+        self.turn_yaw_abs = rospy.Publisher('/fix/abs/yaw', Float64, queue_size = 10)
+        self.depth = rospy.Publisher('/fix/abs/depth', Float64, queue_size = 10)
+        self.go_to_point_publisher = rospy.Publisher('/cmd_fix_position', Point, queue_size = 10)
         
         rospy.wait_for_service('fix_rel_x_srv')
         print 'service starts drive_x'
@@ -38,6 +41,12 @@ class AIControl():
         self.wait_for_subscriber()
 
     ##### start set environment #####
+    def ck_turn(self, data):
+        self.stopt = data.data
+
+    def stop_turn (self):
+        return self.stopt
+
     def listToTwist (self, list):
         temp = Twist()
         temp.linear.x = list[0]
@@ -103,9 +112,7 @@ class AIControl():
             # print zz
             self.depth.publish(zz)
             rospy.sleep(0.2)
-        while not rospy.is_shutdown() and not(self.auv[2] >= (z-self.err) and self.auv[2] <= (z+self.err)):
-            # print self.auv[2]
-            pass
+        self.wait_reach_fix_position(timeout_threshold = 10)
 
         self.stop (1)
         for i in xrange(3):
@@ -272,37 +279,45 @@ class AIControl():
         twist.linear.x = 0;
         cmd_vel_publisher.publish(twist)
 
-    def wait_reach_fix_position(self, delay = 0.1,check_interval = 0.1):
+    def wait_reach_fix_position(self, delay = 0.1,check_interval = 0.1,timeout_threshold = 10):
         rospy.sleep(delay)
-        while not rospy.is_shutdown() and not self.is_at_fix_position :
+        waited_time = 0;
+        while not rospy.is_shutdown() and not self.is_at_fix_position and waited_time <timeout_threshold:
+            waited_time += check_interval
             rospy.sleep(check_interval)
 
     def wait_for_subscriber(self, check_interval = 0.3):
         fin = False
         while not rospy.is_shutdown() and not fin :
             count = 0
+            print count
+            
             if self.command.get_num_connections() > 0:
+                print 1
                 count = count + 1
             if self.turn_yaw_rel.get_num_connections() > 0:
+                print 2
                 count = count + 1
             if self.turn_yaw_abs.get_num_connections() > 0:
+                print 3
                 count = count + 1
             if self.depth.get_num_connections() > 0:
+                print 4
                 count = count + 1
             if self.go_to_point_publisher.get_num_connections() > 0:
+                print 5
                 count = count + 1
             if count >= 5:
                 fin = True
             if not fin:
                 rospy.sleep(check_interval)
                 print 'some sub not connected!'
-
-
+                # print count
 
 
 if __name__=='__main__':
     print 'AIControl'
-    rospy.init_node('ai_control', anonymous=True) #comment if run main.py
+    # rospy.init_node('ai_control', anonymous=True) #comment if run main.py
     aicontrol=AIControl()
     # aicontrol.turn_yaw_relative(90)
     # rospy.Rate(10)

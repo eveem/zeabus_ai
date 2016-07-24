@@ -34,7 +34,7 @@ class SettMission (object):
             sett_data = sett_data.data
             print sett_data
 
-            if sett_data.appear[0]:
+            if len(sett_data.appear) != 0 and sett_data.appear[0]:
                 print 'found'
                 if sett_data.area[0] > 15000: ###### CHANGE ME !!
                     print 'near'
@@ -57,6 +57,7 @@ class SettMission (object):
                     print 'set to center'
                     self.aicontrol.stop (1)
             else:
+                self.aicontrol.drive_x (0.2)
                 self.aicontrol.stop (1)
                 print 'not found'
                 count -= 1
@@ -87,7 +88,7 @@ class SettMission (object):
                 else:
                     print 'move'
                     self.aicontrol.drive ([0,sq_data.x[0],sq_data.y[0],0,0,0])
-                    rospy.sleep(0.2)   
+                    rospy.sleep(0.4)   
             elif len(sq_data.appear) == 2 or len(sq_data.appear) == 3:
                 self.aicontrol.drive_x (0.2)
             else:

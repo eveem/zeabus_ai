@@ -14,7 +14,8 @@ class Hardware:
             srv_name = '/io_and_pressure/IO_ON'
         elif status == 'close' or status == 'leave':
             srv_name = 'io_and_pressure/IO_OFF'
-
+        else:
+            return
         rospy.wait_for_service(srv_name)
         srv = rospy.ServiceProxy(srv_name, IOCommand)
         print 'service complete'
@@ -28,7 +29,7 @@ if __name__ == '__main__':
     hw = Hardware()
     print 'hardware'
     # hw.command ('drop_left', 'drop')
-    # hw.command ('gripper', 'grab')
+    hw.command ('gripper', 'grab')
     # hw.command ('gripper', 'leave')
     # hw.command ('drop_right', 'drop')
     # hw.command ('drop_left', 'close')
