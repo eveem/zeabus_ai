@@ -50,12 +50,11 @@ class SettMission (object):
                         break
                     else:
                         print 'forward'
-                        self.aicontrol.drive_x (0.05)
+                        self.aicontrol.drive_x (0.2)
                 else:
                     self.aicontrol.drive ([0,sett_data.x[0],sett_data.y[0],0,0,0])
                     rospy.sleep(0.5)
                     print 'set to center'
-                    self.aicontrol.stop (1)
             else:
                 self.aicontrol.stop (1)
                 print 'not found'
@@ -75,13 +74,13 @@ class SettMission (object):
             if len(sq_data.appear) == 1:
 
                 if self.aicontrol.is_center ([sq_data.x[0],sq_data.y[0]],-0.05,0.05,-0.05,0.05):
-                    if sq_data.area[0] > 6000:
+                    if sq_data.area[0] > 1000:
                         print 'forward to fire'
                         self.hw.command (String(la), String('fire'))
                         self.hw.command (String(la), String('close'))
                         print 'fire complete'
                         self.aicontrol.stop (10)
-                        self.aicontrol.drive_x (-2)
+                        self.aicontrol.drive_x (-1)
                         break
                     else:
                         print 'forward'
@@ -94,26 +93,27 @@ class SettMission (object):
                 self.aicontrol.drive_x (0.2)
             else:
                 state = self.aicontrol.get_pose()
-                if -4 < state[2] < -2: ###### CHANGE ME !!!
-                    self.aicontrol.drive ([0,0,zd,0,0,0])
-                    rospy.sleep(0.5)
-                self.aicontrol.drive ([0.2,yd,0,0,0,0])
-                rospy.sleep (0.2)
-        return
+                # if -4 < state[2] < -2: ###### CHANGE ME !!!
+                    # self.aicontrol.drive ([0,0,zd,0,0,0])
+                    # rospy.sleep(1)
+                self.aicontrol.drive ([0.2,yd,zd,0,0,0])
+                rospy.sleep (0.5)
+        
 
     def run (self):
         v = 0.05
         eq = ['fire_left', 'fire_right']
         self.find_sett ()
-        self.find_sq (-v, v, eq[0])  #### right top - +
-        self.find_sett ()
-        self.find_sq (v, -v, eq[1])
+        self.find_sq (v, -v, eq[1])  #### left bot + -
+        # self.find_sq (-v, v, eq[0])  #### right top - +
+        # self.find_sett ()
         # self.find_sq (v, v, eq[1])   #### left top + +
-        # self.find_sq (v, -v, eq[1])  #### left bot + -
         # self.find_sq (-v, -v, eq[0]) #### right bot - -
 
 if __name__ == '__main__':
-    sett_mission = SettMission()
-    #command
-    # sett_mission.run(['N','W'])
+    print 'start sett'
+    rospy.init_node('sett_ai', anonymous=True)
+    self.run()
+    # self.find_sett()
+    # self.find_sq (-v, v, eq[0])
     print "finish sett"

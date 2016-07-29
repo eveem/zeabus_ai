@@ -97,13 +97,17 @@ class AIControl():
         rad = math.radians(degree)
         rad = Float64(rad)
         self.turn_yaw_rel.publish(rad)
-        rospy.sleep(0.01)
+        while not self.stop_turn():
+            rospy.sleep(0.1)    
         print 'turn_yaw_relative'
 
     def turn_yaw_absolute (self, degree):
         rad = math.radians (degree)
         rad = Float64(rad)
         self.turn_yaw_abs.publish(rad)
+        rospy.sleep(0.5)
+        while not self.stop_turn():
+            rospy.sleep(0.1) 
         print 'turn_yaw_absolute'
 
     def drive_z (self,z):
@@ -123,10 +127,12 @@ class AIControl():
     def drive_x (self, x):
         self.drive_x_srv (x, 0)
         print 'drive x complete'
+        self.wait_reach_fix_position()
 
     def drive_y (self, y):
         self.drive_x_srv (0, y)
         print 'drive y complete'
+        self.wait_reach_fix_position()
 
     def go_xyz (self, x, y, z):
         point = Point()
@@ -192,7 +198,6 @@ class AIControl():
 
         self.stop()
 
-   
     def delta_radians (self,x,y,bit):
         radians = math.atan2((x-self.auv[0])*bit,(y-self.auv[1])*bit)
         radians -= math.pi/2
@@ -293,19 +298,14 @@ class AIControl():
             print count
             
             if self.command.get_num_connections() > 0:
-                print 1
                 count = count + 1
             if self.turn_yaw_rel.get_num_connections() > 0:
-                print 2
                 count = count + 1
             if self.turn_yaw_abs.get_num_connections() > 0:
-                print 3
                 count = count + 1
             if self.depth.get_num_connections() > 0:
-                print 4
                 count = count + 1
             if self.go_to_point_publisher.get_num_connections() > 0:
-                print 5
                 count = count + 1
             if count >= 5:
                 fin = True

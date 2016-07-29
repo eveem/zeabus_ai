@@ -8,6 +8,7 @@ from zeabus_vision_srv.srv import vision_srv
 from zeabus_vision_srv.msg import vision_msg
 from AIControl import AIControl
 from hardware import Hardware
+import depth as const
 
 class BouyMission (object):
 
@@ -50,7 +51,6 @@ class BouyMission (object):
         rospy.sleep(2)
         bouy_color = ['red', 'green', 'yellow']
 
-
         if green_bouy.appear:
             move = 0
             while red_bouy.appear == False and move != 10:
@@ -61,16 +61,14 @@ class BouyMission (object):
                 move += 1
             if red_bouy.appear:
                 print 'found red bouy'
-                self.aicontrol.drive_y (0.5)
             self.aicontrol.stop (2)
 
         for i in xrange(2):
             print 'will hit ' + bouy_color[i]
-            count = 50
-            max_area = 0
+            count = 20
 
-            self.aicontrol.drive_z (-1.5) ############# CHANGE ME !!!!
-            print 'drive z to -1.5 complete'
+            self.aicontrol.drive_z (const.BOUY_DETECTING_DEPTH) ############# CHANGE ME !!!!
+            print 'drive z const complete'
 
             while not rospy.is_shutdown() and not self.aicontrol.is_fail(count) :
                 now_pose = self.aicontrol.get_pose()
@@ -80,9 +78,7 @@ class BouyMission (object):
                 print bouy_data
 
                 if bouy_data.appear:
-                    if bouy_data.area > max_area :
-                        max_area = bouy_data.area
-
+    
                     vx = (1/bouy_data.area)*500
                     vy = bouy_data.x
                     vz = bouy_data.y
@@ -102,20 +98,18 @@ class BouyMission (object):
                             print 'go to bouy'
                             print 'drive_x 3 meter'
                             self.aicontrol.drive_x (3)
-                            rospy.sleep(5)
+                            rospy.sleep(2)
                             break
                         else:
-                            print 'drive_x 1 meter so far'
-                            self.aicontrol.drive_x (0.5)
-                            rospy.sleep(5)
+                            print 'drive_x 0.2 meter so far'
+                            self.aicontrol.drive_x (0.2)
+                            rospy.sleep(2)
                     else :
                         self.aicontrol.drive([0,vy,vz,0,0,0])
                         print 'set to center'
                         rospy.sleep (sr)
 
                 else :
-                    self.aicontrol.drive_x (0.1)
-                    rospy.sleep(1)
                     self.aicontrol.stop(0.2)
                     count -= 1
             ### end while ###
@@ -138,18 +132,20 @@ class BouyMission (object):
 
             if i == 0:
 
-                self.aicontrol.drive_y (-6)
+                self.aicontrol.drive_z (const.BOUY_DETECTING_DEPTH)
+                self.aicontrol.drive_y (-3)
+                print 'slide right 3 meter'
 
                 green_bouy = self.detect_bouy(String('bouy'),String('green'))
                 green_bouy = green_bouy.data
                 rospy.sleep(2)
 
                 while green_bouy.appear == False and move != 20:
-                    self.aicontrol.drive ([0,-0.6,0,0,0,0])
-                    rospy.sleep(4)
+                    self.aicontrol.drive_y (-0.1)
+                    rospy.sleep(0.5)
                     green_bouy = self.detect_bouy(String('bouy'),String('green'))
                     green_bouy = green_bouy.data
-                    rospy.sleep(2)
+                    rospy.sleep(1)
                     move += 1
 
                     if not self.check_point(green_bouy.x, green_bouy.y):
@@ -167,18 +163,20 @@ class BouyMission (object):
                     self.oldx = green_bouy.x
 
             elif i == 1:
+                
+                self.aicontrol.drive_z (const.BOUY_DETECTING_DEPTH)
                 yellow_bouy = self.detect_bouy(String('bouy'),String('yellow'))
                 yellow_bouy = yellow_bouy.data
                 rospy.sleep(2)
 
-                self.aicontrol.drive_y(1)
-                self.aicontrol.drive_z(-2)
+                self.aicontrol.drive_y(1.2)
 
                 while yellow_bouy.appear == False and move != 10:
                     self.aicontrol.stop (2)
                     yellow_bouy = self.detect_bouy(String('bouy'),String('yellow'))
                     yellow_bouy = yellow_bouy.data
-                    rospy.sleep(2)
+                    self.aicontrol.drive_y (0.1)
+                    rospy.sleep(1)
                     move += 1
                 rospy.sleep(3)
 
@@ -190,12 +188,13 @@ class BouyMission (object):
         # self.find_path()
 
     def find_path (self):
-        self.aicontrol.drive_z (-1)
+        self.aicontrol.drive_z (const.PATH_DETECTING_DEPTH)
         path_data = self.detect_path(String('path1'),String('orange'))
         path_data = path_data.data
         print path_data
         count = 80
         found = False
+        
         while not rospy.is_shutdown() and not self.aicontrol.is_fail(count) :
             if path_data.appear:
                 print 'found path'
@@ -204,7 +203,7 @@ class BouyMission (object):
             else:
                 yy = 0.1
                 self.aicontrol.drive_x (0.3)
-                for i in xrange(5):
+                for i in xrange(8):
                     self.aicontrol.drive_y (yy)
                     path_data = self.detect_path(String('path1'),String('orange'))
                     path_data = path_data.data
@@ -215,7 +214,7 @@ class BouyMission (object):
                 if not found:
                     self.aicontrol.drive_y(-0.5)
                     yy = -0.1
-                    for i in xrange(5):
+                    for i in xrange(8):
                         self.aicontrol.drive_y (yy)
                         path_data = self.detect_path(String('path1'),String('orange'))
                         path_data = path_data.data
@@ -263,31 +262,29 @@ class BouyMission (object):
                         print 'go to bouy'
                         print 'drive_x 2 meter'
                         self.aicontrol.drive_x (2)
-                        rospy.sleep (5)
+                        rospy.sleep (1)
                         self.hw.command ('gripper', 'grab')
-                        rospy.sleep (2)
+                        rospy.sleep (1)
                         print 'grab la na eiei'
-                        self.aicontrol.drive_z (-3.5) ####### CHANGE ME !!!
+                        self.aicontrol.drive_z (const.BOUY_YELLOW_PULL_DEPTH) ####### CHANGE ME !!!
                         print 'drive_z complete'
                         print 'pull down'
                         self.hw.command ('gripper', 'close')
                         self.aicontrol.stop (2)
-                        rospy.sleep (2)
                         print 'release'
                         self.aicontrol.drive_x (-2)
-                        self.aicontrol.drive_z (-1)
+                        self.aicontrol.drive_z (const.PATH_DETECTING_DEPTH)
                         self.aicontrol.drive_y (-0.8)
                         break
                     else:
-                        print 'drive_x 1 meter so far'
-                        self.aicontrol.drive_x (1)
+                        print 'drive_x 0.3 meter so far'
+                        self.aicontrol.drive_x (0.3)
                         rospy.sleep(0.5)
                 else :
                     self.aicontrol.drive([0,vy,vz,0,0,0])
                     print 'set to center'
                     rospy.sleep (sr)
             else :
-                self.aicontrol.drive_x (0.1)
                 self.aicontrol.stop(0.2)
                 count -= 1
         ### end while ###

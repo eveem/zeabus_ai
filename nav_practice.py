@@ -35,7 +35,7 @@ class NavigateMission (object):
 
         if next_is:
             self.aicontrol.drive_z (const.NAV_TOP_DETECTING_DEPTH)
-            
+
             while not rospy.is_shutdown() and not self.aicontrol.is_fail(count):
                 print 'in while'
                 nav_data = self.detect_nav(String('navigate'),String('yellow'))
@@ -54,7 +54,7 @@ class NavigateMission (object):
 
                     if self.aicontrol.is_center([nav_data.x,0],-bc,bc,-bc,bc) :
                         print 'center'
-                        self.aicontrol.drive_x (0.1)
+                        self.aicontrol.drive_x (0.05)
 
                         bot_data = self.bot_nav(String('navigate'),String('yellow'))
                         bot_data = bot_data.data
@@ -63,9 +63,9 @@ class NavigateMission (object):
 
                         self.aicontrol.drive_z (const.NAV_BOT_DETECTING_DEPTH)
                         c = 50
-                        
+
                         while not bot_data.appear and not self.aicontrol.is_fail(c):
-                            self.aicontrol.drive_x (0.1)
+                            self.aicontrol.drive_x (0.05)
                             rospy.sleep(1)
                             bot_data = self.bot_nav(String('navigate'),String('yellow'))
                             bot_data = bot_data.data
@@ -75,7 +75,6 @@ class NavigateMission (object):
 
                         print 'will stop'
                         self.aicontrol.stop(1)
-                        self.aicontrol.drive_x (-0.5)
                         self.aicontrol.drive_z (const.NAV_ROLL_DEPTH) #### CHANGE ME !! ####
                         self.aicontrol.stop(1)
                         print 'stop wait to roll'
@@ -89,12 +88,12 @@ class NavigateMission (object):
                 ### end while ###
                 else :
                     print 'not found'
-                    self.aicontrol.drive_x (0.1)
+                    self.aicontrol.drive_x (0.05)
                     rospy.sleep(1)
                     count -= 1
-            
+
             rospy.sleep (0.25)
-        
+
         if gg == False:
             print 'will roll'
             self.aicontrol.stop(1)
@@ -108,6 +107,8 @@ class NavigateMission (object):
             return
 
 if __name__ == '__main__':
-    navigate_mission = NavigateMission()
-    navigate_mission.run()
+    print 'start nav'
+    rospy.init_node('nav_ai', anonymous=True)
+    self.run (True)
+    # self.run (False)
     print "finish Navigation Channel"
