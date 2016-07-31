@@ -26,7 +26,7 @@ class SettMission (object):
         self.hw = Hardware()
 
     def find_sett (self):
-        count = 50
+        count = 20
 
         self.aicontrol.drive_z (const.SET_DETECTING_DEPTH) ##### CHANGE ME !!
 
@@ -73,14 +73,14 @@ class SettMission (object):
 
             if len(sq_data.appear) == 1:
 
-                if self.aicontrol.is_center ([sq_data.x[0],sq_data.y[0]],-0.05,0.05,-0.05,0.05):
+                if self.aicontrol.is_center ([sq_data.x[0],sq_data.y[0]],-0.2,0.2,-0.2,0.2):
                     if sq_data.area[0] > 1000:
                         print 'forward to fire'
-                        self.hw.command (String(la), String('fire'))
-                        self.hw.command (String(la), String('close'))
+                        self.hw.command (la, 'fire')
+                        # self.hw.command (String(la), String('close'))
                         print 'fire complete'
-                        self.aicontrol.stop (10)
-                        self.aicontrol.drive_x (-1)
+                        self.aicontrol.stop (5)
+                        self.aicontrol.drive_x (-0.5)
                         break
                     else:
                         print 'forward'
@@ -88,24 +88,26 @@ class SettMission (object):
                 else:
                     print 'move'
                     self.aicontrol.drive ([0,sq_data.x[0],sq_data.y[0],0,0,0])
-                    rospy.sleep(0.5)
+                    rospy.sleep(0.1)
             elif len(sq_data.appear) == 2 or len(sq_data.appear) == 3:
-                self.aicontrol.drive_x (0.2)
+                self.aicontrol.drive_x (0.1)
             else:
-                state = self.aicontrol.get_pose()
                 # if -4 < state[2] < -2: ###### CHANGE ME !!!
                     # self.aicontrol.drive ([0,0,zd,0,0,0])
                     # rospy.sleep(1)
-                self.aicontrol.drive ([0.2,yd,zd,0,0,0])
+                self.aicontrol.drive ([0.05,yd,zd,0,0,0])
                 rospy.sleep (0.5)
-        
+                count -= 1
+
 
     def run (self):
-        v = 0.05
+        v = 0.1
         eq = ['fire_left', 'fire_right']
+
+        self.find_sett ()
+        self.find_sq (-v, v, eq[0])  #### right top - +
         self.find_sett ()
         self.find_sq (v, -v, eq[1])  #### left bot + -
-        # self.find_sq (-v, v, eq[0])  #### right top - +
         # self.find_sett ()
         # self.find_sq (v, v, eq[1])   #### left top + +
         # self.find_sq (-v, -v, eq[0]) #### right bot - -

@@ -8,6 +8,7 @@ from zeabus_vision_bin.msg import Bin_Msg
 from AIControl import AIControl
 from hardware import Hardware
 import depth as const
+from sett_practice import SettMission
 
 class BinnMission (object):
 
@@ -21,6 +22,8 @@ class BinnMission (object):
         self.detect_binn = rospy.ServiceProxy(srv_name, Bin_Srv)
         #### BINN
 
+        self.sett_prac_mission = SettMission()
+
         self.aicontrol = AIControl()
         self.hw = Hardware()
 
@@ -31,8 +34,9 @@ class BinnMission (object):
 
     def run (self, cover): # if cover = 1, uncover = 0
         print 'Go to bin'
-        count = 50
-        self.aicontrol.drive_z (-1)
+        count = 20
+
+        self.aicontrol.drive_z (const.BIN_DETECTING_DEPTH)
         while not rospy.is_shutdown() and not self.aicontrol.is_fail(count):
             print 'in while'
             binn_data = self.getdata()
@@ -49,6 +53,7 @@ class BinnMission (object):
             else:
                 # self.aicontrol.stop(1)
                 print 'not found'
+                print count
                 count -= 1
 
             if i != -1:
@@ -96,8 +101,25 @@ class BinnMission (object):
         rospy.sleep(1)
         print 'drop marker yet'
         print 'bin complete'
+        # self.find_sett ()
 
-        return
+    def find_sett (self):
+        self.aicontrol.drive_z (const.SET_DETECTING_DEPTH) #### CHANGE ME !!!
+        count = 30
+        print 'set course'
+        while not rospy.is_shutdown() and not self.aicontrol.is_fail(count):
+            sett_data = self.detect_sett(String('setcourse'),String('big'))
+            sett_data = sett_data.data
+            print sett_data
+
+            if len(sett_data.appear) == 1:
+                print 'FOUND SETT !!'
+                self.sett_prac_mission.run()
+                break
+            else:
+                self.aicontrol.turn_yaw_relative(-5)
+                rospy.sleep(2)
+                self.aicontrol.stop(1)
 
 if __name__ == '__main__':
     print 'start binn'

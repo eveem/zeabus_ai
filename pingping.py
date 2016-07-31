@@ -9,8 +9,9 @@ from zeabus_vision_bin.msg import Bin_Msg
 from zeabus_vision_setcourse.srv import SetCourse_Srv
 from zeabus_vision_setcourse.msg import SetCourse_Msg
 from AIControl import AIControl
-from binn import BinnMission
-from sett import SettMission
+from binn_practice import BinnMission
+from sett_practice import SettMission
+from hardware import Hardware
 import depth as const
 import math
 
@@ -62,7 +63,7 @@ class PingerMission(object):
 
     def ping_check(self):
         self.aicontrol.drive_z (const.PING_DETECTING_DEPTH)
-        print "listen hydrophone"  
+        print "listen hydrophone"
         self.aicontrol.stop (3)
         self.reset()
         self.aicontrol.stop (3)
@@ -71,7 +72,7 @@ class PingerMission(object):
         print self.hy.azi
         print real_degree
 
-        dis = 3
+        dis = 5
         self.aicontrol.turn_yaw_relative (real_degree)
 
         goal = False
@@ -79,12 +80,12 @@ class PingerMission(object):
 
         while goal != True and not rospy.is_shutdown() and not self.aicontrol.is_fail(count):
             # if not self.got_data:
-            #     self.aicontrol.drive_x (0.2) 
+            #     self.aicontrol.drive_x (0.2)
             print 'listen pinger'
             state = self.aicontrol.get_pose()
             my_yaw = state[5]
             print '*****************'
-
+            print count
             if self.hy.distance != -999:
 
                 if self.aicontrol.stop_turn():
@@ -97,7 +98,7 @@ class PingerMission(object):
                     if real_degree > -10 and real_degree < 10:
                         self.aicontrol.drive_x (dis)  ### control distance by azi || elv
                         print 'drive'
-                        dis -= 0.2
+                        dis -= 0.5
                         if dis <= 0:
                             dis = 0.5
                         rospy.sleep(1)
@@ -139,8 +140,74 @@ class PingerMission(object):
             else:
                 print 'not found'
                 count -= 1
-                self.aicontrol.drive_x (0.04)
+                # self.aicontrol.drive_x (0.04)
         return False
+
+    def find_sett(self):
+        self.aicontrol.drive_z (const.SET_DETECTING_DEPTH) #### CHANGE ME !!!
+        count = 12
+        print 'set course'
+        while not rospy.is_shutdown() and not self.aicontrol.is_fail(count):
+            print count
+            found = 0
+            for i in xrange(5):
+                sett_data = self.detect_sett(String('setcourse'),String('small'))
+                sett_data = sett_data.data
+                print sett_data
+                if len(sett_data.appear) != 0:
+                    found += 1
+
+            if found >= 3:
+                print 'FOUND SETT !!'
+                return True
+            else:
+                print 'not found'
+                self.aicontrol.turn_yaw_relative(-30)
+                rospy.sleep(1)
+                self.aicontrol.stop(0.1)
+                count -= 1
+        return False
+
+    def con_find(self):
+        hw = Hardware()
+
+        is_at_bin = False
+        if self.find_binn():
+            is_at_bin = True
+            self.do_bin()
+
+        if self.find_sett():
+            is_at_bin = True
+            self.do_sett()
+
+        elif is_at_bin:
+            is_at_bin = True
+            hw.command('drop_right', 'fire')
+            hw.command('drop_left', 'fire')
+            hw.command('fire_right', 'fire')
+            hw.command('fire_left', 'fire')
+
+        return is_at_bin
+
+        # if self.find_sett() and self.find_binn():
+        #     print 'will do binn and sett'
+        #     self.do_binn()
+        #     self.do_sett()
+        #     return True
+        # elif self.find_sett() and not self.find_binn():
+        #     print 'do sett and binn'
+        #     self.do_sett()
+        #     self.do_binn()
+        #     return True
+        # elif not self.find_sett() and self.find_binn():
+        #     print 'do binn and sett'
+        #     self.do_binn()
+        #     self.do_sett()
+        #     return True
+        # else:
+        #     print 'Floating'
+        #     self.aicontrol.drive_z (const.PING_FLOATING_DEPTH)
+        #     return False
 
     def run(self):
         self.aicontrol.stop(2)
@@ -149,38 +216,55 @@ class PingerMission(object):
         self.ping_check()
         print 'above pinger'
 
-        count = 20
-
-        if self.find_binn():
-            print 'will do binn'
-            self.aicontrol.stop(2)
-            self.do_binn()
-            self.aicontrol.turn_yaw_relative(90)
-            rospy.sleep(30) #### switch pinger
+        done_binn = self.con_find()
+        self.aicontrol.drive_z (const.PING_DETECTING_DEPTH)
+        if done_binn:
+            rospy.sleep(30)
             self.reset()
             self.ping_check()
             self.aicontrol.drive_z (const.PING_FLOATING_DEPTH)
-            print 'FINISH !!'
         else:
-            self.aicontrol.drive_x (-1)
             self.aicontrol.drive_z (const.PING_FLOATING_DEPTH)
-            self.aicontrol.turn_yaw_relative (90)
             rospy.sleep(30)
+            self.aicontrol.drive_z (const.PING_DETECTING_DEPTH)
             self.reset()
-            if self.hy.elv > 25:
-                self.aicontrol.drive_z (const.PING_DETECTING_DEPTH)
-                self.ping_check()
-                self.find_binn()
-                self.do_binn()
-            else:
-                self.aicontrol.stop(2)
-                print 'FINISH !!'
-        print 'pinger mission complete'
-        return
+            self.ping_check()
+            self.con_find()
+
+        self.aicontrol.drive_z (const.FINISH)
+        # if self.find_binn():
+        #     print 'will do binn'
+        #     self.aicontrol.stop(2)
+        #     self.do_binn()
+        #     self.aicontrol.turn_yaw_relative(90)
+        #     rospy.sleep(30) #### switch pinger
+        #     self.reset()
+        #     self.ping_check()
+        #     self.aicontrol.drive_z (const.PING_FLOATING_DEPTH)
+        #     print 'FINISH !!'
+        # else:
+        #     self.aicontrol.drive_z (const.PING_FLOATING_DEPTH)
+        #     self.aicontrol.turn_yaw_relative (90)
+        #     rospy.sleep(30)
+        #     self.reset()
+        #     if self.hy.elv > 25:
+        #         self.aicontrol.drive_z (const.PING_DETECTING_DEPTH)
+        #         self.ping_check()
+        #         self.find_binn()
+        #         self.do_binn()
+        #     else:
+        #         self.aicontrol.stop(2)
+        #         print 'FINISH !!'
+        # print 'pinger mission complete'
+        # return
 
     def do_binn(self):
         binn_mission = BinnMission()
         binn_mission.run(0)
+
+    def do_sett(self):
+        sett_mission = SettMission()
+        sett_mission.run()
 
 if __name__=='__main__':
     print 'hydrophone'

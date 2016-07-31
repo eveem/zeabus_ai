@@ -46,50 +46,111 @@ if __name__ == '__main__':
     print '3'
     navigate_mission = NavigateMission()
     print '4'
-    pingping = PingerMission()
-    print '5'
     binn_prac_mission = BinnMission()
     print '6'
-    # sett_prac_mission = SettMission()
-    # print '7'
+    sett_prac_mission = SettMission()
+    print '7'
     print 'inherit complete'
 
-    while not check and not rospy.is_shutdown():
-        rospy.sleep(0.1)
+    # while not check and not rospy.is_shutdown():
+    #     rospy.sleep(0.1)
 
+    ''' ### SEMI FINAL DAY ONE ###
     #### FULL VERSION
     path_one_found = gate_mission.run ('B')
     if path_one_found:
         print 'CAN FOLLOW PATH'
-        path_complete = path_prac_mission.run ()
-       
+        path_complete = path_prac_mission.run()
     else:
         print 'TURN TO FIND BOUY'
-        rospy.sleep (2)
         aicontrol.turn_yaw_absolute (tis.BOUY_DIRECTION)
-    
-    bouy_found = path_prac_mission.find_bouy ()
 
-    bouy_complete = bouy_prac_mission.run ('B')
-    if not bouy_complete:
-        aicontrol.turn_yaw_absolute (const.PATH_TWO_DIRECTION)
-    # add backward and drive_z upper
+    aicontrol.drive_z (const.BOUY_DETECTING_DEPTH)
+    aicontrol.drive_x (4)
+    aicontrol.drive_x (-1)
+    aicontrol.drive_y (-1.2)
 
-    bouy_prac_mission.find_path ()
-    path_prac_mission.run ()
-    
+    aicontrol.drive_z (-2.3)
+    aicontrol.drive_x (1)
+
+    aicontrol.drive_z (const.PATH_DETECTING_DEPTH)
+    aicontrol.drive_y (1.2)
+
+    path_two_found = bouy_prac_mission.find_path ()
+    if not path_two_found:
+        print 'TURN TO FIND PATH'
+        aicontrol.turn_yaw_absolute (tis.NAV_DIRECTION)
+
     nav_condition = path_prac_mission.find_nav ()
     navigate_mission.run (nav_condition)
 
-    aicontrol.turn_yaw_absolute (const.OCTAGON_DIRECTION)
-    aicontrol.drive_x (7)
+    aicontrol.drive_z (const.PATH_DETECTING_DEPTH)
+    aicontrol.turn_yaw_absolute (tis.OCTAGON_DIRECTION)
+    aicontrol.drive_x (12)
 
-    pingping.ping_check()
-    aicontrol.drive_z (const.PING_FLOATING_DEPTH)
-    rospy.sleep (30)
+    pingping = PingerMission()
+    while not pingping.check_data():
+        rospy.sleep(2)
+        aicontrol.drive_x (0.2)
+    '''
+
+    '''
+    #### FOR SEMI FINAL DAY TWO
+    path_one_found = gate_mission.run ('A')
+    if path_one_found:
+        print 'CAN FOLLOW PATH'
+        path_complete = path_prac_mission.run()
+    else:
+        print 'TURN TO FIND BOUY'
+        aicontrol.turn_yaw_absolute (tis.BOUY_DIRECTION)
+
+    aicontrol.drive_z (const.BOUY_DETECTING_DEPTH)
+    aicontrol.drive_x (5)
+    aicontrol.drive_x (-1)
+    aicontrol.drive_y (1)
+
+    aicontrol.drive_z (-2.3)
+    aicontrol.drive_x (1)
+
+    aicontrol.drive_z (const.PATH_DETECTING_DEPTH)
+    aicontrol.drive_y (-1)
+
+    path_two_found = bouy_prac_mission.find_path ()
+    if not path_two_found:
+        print 'TURN TO FIND PATH'
+        aicontrol.turn_yaw_absolute (tis.NAV_DIRECTION)
+        aicontrol.drive_x (1)
+
+    nav_condition = path_prac_mission.find_nav ()
+    navigate_mission.run (nav_condition)
+
     aicontrol.drive_z (const.PING_DETECTING_DEPTH)
-    pingping.ping_check()
-    pingping.find_binn()
-    pingping.do_binn()
+    pingping = PingerMission()
+    aicontrol.turn_yaw_relative (45)
+    pingping.run()
+    aicontrol.drive_z (const.FINISH)
+
     aicontrol.stop (5)
     print 'FINISH !!!'
+    '''
+
+    # red_status = path_prac_mission.find_bouy()
+    # bouy_complete = False
+    # if red_status:
+    #     bouy_complete = bouy_prac_mission.red_then_green('D')
+    # else:
+    #     aicontrol.drive_z (const.BOUY_DETECTING_DEPTH)
+    #     aicontrol.drive_x (4)
+    #     aicontrol.drive_x (-1)
+    #     aicontrol.drive_y (-1.2)
+    #
+    #     aicontrol.drive_z (-2.3)
+    #     aicontrol.drive_x (1)
+    #
+    #     aicontrol.drive_z (const.PATH_DETECTING_DEPTH)
+    #     aicontrol.drive_y (1.2)
+    #
+    # if not bouy_complete:
+    #     aicontrol.turn_yaw_absolute (tis.PATH_TWO_DIRECTION)
+    #     aicontrol.drive_z (const.PATH_DETECTING_DEPTH)
+    #     aicontrol.drive_x (5)

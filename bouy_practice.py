@@ -33,6 +33,7 @@ class BouyMission (object):
 
         self.aicontrol = AIControl()
         self.hw = Hardware()
+        self.now_pose = [0,0,0,0,0,0]
 
     def run (self, q):
         self.aicontrol.drive_z (const.BOUY_DETECTING_DEPTH)
@@ -182,8 +183,126 @@ class BouyMission (object):
             return True
         # self.yellow_bouy()
 
-    def red_bouy (self):
+    def red_then_green (self, q):
+        count = 25
+        self.aicontrol.drive_z (const.BOUY_DETECTING_DEPTH)
         
+        if q == 'A':
+            mul = 1
+        else:
+            mul = -1
+
+        print 'in red then green'
+
+        while not rospy.is_shutdown() and not self.aicontrol.is_fail(count) :
+            print 'count'
+            print count
+            self.now_pose = self.aicontrol.get_pose()
+
+            bouy_data = self.detect_bouy(String('bouy'),String('red'))
+            bouy_data = bouy_data.data
+            print bouy_data
+
+            if bouy_data.appear:
+
+                vx = (1/bouy_data.area)*500
+                vy = bouy_data.x
+                vz = bouy_data.y
+
+                if bouy_data.area > 700 : ### near ###
+                    print 'near'
+                    bc = 0.05
+                    sr = 0.2
+                else : ### far ###
+                    print 'far'
+                    bc = 0.1
+                    sr = 0.4
+
+                if self.aicontrol.is_center([bouy_data.x,bouy_data.y],-bc,bc,-bc,bc) :
+                    print bouy_data
+                    if bouy_data.area > 900: ### CHANGE ME !!!
+                        print 'go to bouy'
+                        print 'drive_x 2 meter'
+                        self.aicontrol.drive_x (2)
+                        break
+                    else:
+                        print 'drive_x 0.5 meter so far'
+                        self.aicontrol.drive_x (0.5)
+                else :
+                    self.aicontrol.drive([0,vy,vz,0,0,0])
+                    print 'set to center'
+                    rospy.sleep (sr)
+
+            else :
+                self.aicontrol.drive_x (0.1)
+                count -= 1
+
+        if self.aicontrol.is_fail(count) == False:
+            self.aicontrol.go_xyz (self.now_pose[0],self.now_pose[1],self.now_pose[2])
+            return False
+        else:
+            self.aicontrol.drive_x (-1)
+            self.aicontrol.drive_y (1.2*mul)
+            self.aicontrol.drive_z (-2.3)
+            self.aicontrol.drive_x (1)
+            print 'FINISH 2 BOUY'
+
+            self.aicontrol.drive_z (const.PATH_DETECTING_DEPTH)
+            self.aicontrol.drive_x (1)
+            return True
+
+    def do_red (self, q):
+        count = 25
+        self.aicontrol.drive_z (const.BOUY_DETECTING_DEPTH)
+        if q == 'A':
+            mul = 1
+        else:
+            mul = -1
+        print 'in red'
+
+        while not rospy.is_shutdown() and not self.aicontrol.is_fail(count) :
+            print 'count'
+            print count
+            self.now_pose = self.aicontrol.get_pose()
+
+            bouy_data = self.detect_bouy(String('bouy'),String('red'))
+            bouy_data = bouy_data.data
+            print bouy_data
+
+            if bouy_data.appear:
+
+                vx = (1/bouy_data.area)*500
+                vy = bouy_data.x
+                vz = bouy_data.y
+
+                if bouy_data.area > 700 : ### near ###
+                    print 'near'
+                    bc = 0.05
+                    sr = 0.2
+                else : ### far ###
+                    print 'far'
+                    bc = 0.1
+                    sr = 0.4
+
+                if self.aicontrol.is_center([bouy_data.x,bouy_data.y],-bc,bc,-bc,bc) :
+                    print bouy_data
+                    if bouy_data.area > 900: ### CHANGE ME !!!
+                        print 'go to bouy'
+                        print 'drive_x 2 meter'
+                        self.aicontrol.drive_x (2)
+                        break
+                    else:
+                        print 'drive_x 0.5 meter so far'
+                        self.aicontrol.drive_x (0.5)
+                else :
+                    self.aicontrol.drive([0,vy,vz,0,0,0])
+                    print 'set to center'
+                    rospy.sleep (sr)
+
+            else :
+                self.aicontrol.drive_x (0.1)
+                count -= 1
+
 
     def yellow_bouy (self):
         self.aicontrol.drive_z (const.BOUY_DETECTING_DEPTH)
@@ -254,17 +373,23 @@ class BouyMission (object):
         path_data = self.detect_path(String('path1'),String('orange'))
         path_data = path_data.data
         print path_data
-        count = 30
         found = False
-
-        while not rospy.is_shutdown() and not self.aicontrol.is_fail(count) :
-            if path_data.appear:
-                print 'found path'
-                self.aicontrol.stop(2)
-                break
-            else:
-                yy = 0.1
-                self.aicontrol.drive_x (1)
+        if path_data.appear:
+            print 'found path'
+            self.aicontrol.stop(2)
+        else:
+            yy = 0.1
+            self.aicontrol.drive_x (1)
+            for i in xrange(8):
+                self.aicontrol.drive_y (yy)
+                path_data = self.detect_path(String('path1'),String('orange'))
+                path_data = path_data.data
+                print path_data
+                if path_data.appear:
+                    found = True
+            if not found:
+                self.aicontrol.drive_y(-0.5)
+                yy = -0.1
                 for i in xrange(8):
                     self.aicontrol.drive_y (yy)
                     path_data = self.detect_path(String('path1'),String('orange'))
@@ -272,20 +397,6 @@ class BouyMission (object):
                     print path_data
                     if path_data.appear:
                         found = True
-                        break
-                if not found:
-                    self.aicontrol.drive_y(-0.5)
-                    yy = -0.1
-                    for i in xrange(8):
-                        self.aicontrol.drive_y (yy)
-                        path_data = self.detect_path(String('path1'),String('orange'))
-                        path_data = path_data.data
-                        print path_data
-                        if path_data.appear:
-                            found = True
-                            break
-                count -= 1
-
         return found
 
     '''

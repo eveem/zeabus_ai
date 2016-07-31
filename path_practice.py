@@ -92,6 +92,8 @@ class PathMission (object):
         self.aicontrol.drive_z (const.BOUY_DETECTING_DEPTH)
         while not rospy.is_shutdown() and not self.aicontrol.is_fail(count):
 
+            print count
+
             red_bouy = self.detect_bouy(String('bouy'),String('red'))
             red_bouy = red_bouy.data
             rospy.sleep(1)
@@ -118,6 +120,7 @@ class PathMission (object):
             else:
                 print 'NOT FOUND BOUY'
                 self.aicontrol.drive_x (0.5)
+                count -= 1
 
         if self.aicontrol.is_fail (count):
             found = False
@@ -155,7 +158,7 @@ class PathMission (object):
             rospy.sleep (1)
 
         # self.aicontrol.stop(2)
-        return
+        return True
 
 
 if __name__ == '__main__':

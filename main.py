@@ -48,94 +48,44 @@ if __name__ == '__main__':
     print '4'
     binn_prac_mission = BinnMission()
     print '6'
-    # sett_prac_mission = SettMission()
-    # print '7'
+    sett_prac_mission = SettMission()
+    print '7'
     print 'inherit complete'
 
     while not check and not rospy.is_shutdown():
         rospy.sleep(0.1)
 
-    #### FULL VERSION
-    # path_one_found = gate_mission.run ('B')
-    # if path_one_found:
-    #     print 'CAN FOLLOW PATH'
-    #     path_complete = path_prac_mission.run ()
-       
-    # else:
-    #     print 'TURN TO FIND BOUY'
-    #     rospy.sleep (2)
-    #     aicontrol.turn_yaw_absolute (tis.BOUY_DIRECTION)
-    
-    # bouy_found = path_prac_mission.find_bouy ()
-
-    # bouy_complete = bouy_prac_mission.run ('B')
-    # if not bouy_complete:
-    #     aicontrol.turn_yaw_absolute (const.PATH_TWO_DIRECTION)
-
-    # bouy_prac_mission.find_path ()
-    # path_prac_mission.run ()
-
-    # nav_condition = path_prac_mission.find_nav ()
-    # navigate_mission.run (nav_condition)
-
-    # aicontrol.turn_yaw_absolute (const.OCTAGON_DIRECTION)
-    # aicontrol.drive_x (7)
-
-    # pingping.ping_check()
-    # aicontrol.drive_z (const.PING_FLOATING_DEPTH)
-
-    path_one_found = gate_mission.run ('B')
+    path_one_found = gate_mission.run ('A')
     if path_one_found:
         print 'CAN FOLLOW PATH'
         path_complete = path_prac_mission.run()
     else:
         print 'TURN TO FIND BOUY'
         aicontrol.turn_yaw_absolute (tis.BOUY_DIRECTION)
-  
-    aicontrol.drive_z (const.BOUY_DETECTING_DEPTH)
-    aicontrol.drive_x (4)
-    aicontrol.drive_x (-1)
-    aicontrol.drive_y (-1.2)
 
-    aicontrol.drive_z (-2.3)
-    aicontrol.drive_x (1)
-    
-    aicontrol.drive_z (const.PATH_DETECTING_DEPTH)
-    aicontrol.drive_y (1.2)
+    red_status = path_prac_mission.find_bouy()
+    if red_status:
+        print 'DO RED BOUY'
+        bouy_prac_mission.do_red('D')
+    else:
+        aicontrol.drive_x (1)
+        aicontrol.turn_yaw_absolute (tis.NAV_DIRECTION)
 
     path_two_found = bouy_prac_mission.find_path ()
     if not path_two_found:
         print 'TURN TO FIND PATH'
         aicontrol.turn_yaw_absolute (tis.NAV_DIRECTION)
+        aicontrol.drive_x (1)
 
     nav_condition = path_prac_mission.find_nav ()
     navigate_mission.run (nav_condition)
 
-    aicontrol.drive_z (const.PATH_DETECTING_DEPTH)
-    aicontrol.turn_yaw_absolute (tis.OCTAGON_DIRECTION)
-    aicontrol.drive_x (12)
-
+    aicontrol.drive_z (const.PING_DETECTING_DEPTH)
     pingping = PingerMission()
-    while not pingping.check_data():
-        rospy.sleep(2)
-        aicontrol.drive_x (0.2)
-    
-    pingping.run()
 
+    aicontrol.turn_yaw_relative (45)
+    pingping.run()
+    aicontrol.drive_z (const.FINISH)
 
     aicontrol.stop (5)
     print 'FINISH !!!'
-
-
-
-
-
-
-
-
-
-
-
-
-
-
